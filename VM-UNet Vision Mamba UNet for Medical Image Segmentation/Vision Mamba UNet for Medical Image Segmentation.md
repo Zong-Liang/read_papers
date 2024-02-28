@@ -6,7 +6,7 @@
 
 ## 动机
 
-基于CNN的模型具有长程建模局限，基于transformer的模型性能收到二次计算复杂度的阻碍，提出了纯基于状态空间模型的Vision Mamba UNet (VM-UNet)，同时具有长程建模能力和线性计算复杂度，并在Synapse、ISIC17、ISIC18三个数据集上验证了VM-UNet在医学图像分割任务上的性能。
+基于CNN的模型具有长程建模局限，基于transformer的模型性能受到二次计算复杂度的阻碍，提出了纯基于状态空间模型的Vision Mamba UNet (VM-UNet)，同时具有长程建模能力和线性计算复杂度，并在Synapse、ISIC17、ISIC18三个数据集上验证了VM-UNet在医学图像分割任务上的性能。
 
 ## 结构图
 
@@ -83,42 +83,106 @@ Synapse multi-organ segmentation dataset (Synapse): 18 个案例用于训练，1
 
 ## vocabulary
 
-|                单词                |       音标       | 词性  |        中文        |
-| :--------------------------------: | :--------------: | :---: | :----------------: |
-|               realm                |      /relm/      |  n.   |        领域        |
-|          in the realm of           |                  |       |     在…领域里      |
-|            extensively             |  ɪkˈstensɪvli/   | adv.  |                    |
-|              explore               |  /ɪkˈsplɔː(r)/   |  v.   |        探索        |
-|              exhibit               |    /ɪɡˈzɪbɪt/    |  v.   |       表现出       |
-|       exhibit limitations in       |                  |       |                    |
-|  long-range modeling capabilities  |                  |       |    长程建模能力    |
-|               hamper               |   /ˈhæmpə(r)/    |  v.   |        阻碍        |
-|              whereas               |    /ˌweərˈæz/    | conj. |        然而        |
-|             quadratic              |   /kwɒˈdrætɪk/   | adj.  |       二次的       |
-| quadratic computational complexity |                  |       |   二次计算复杂度   |
-|     State Space Models (SSMs)      |                  |       |    空间状态模型    |
-|             exemplify              |  ɪɡˈzemplɪfaɪ/   |  v.   |     是…的典型      |
-|               emerge               |    /ɪˈmɜːdʒ/     |  v.   |        出现        |
-|             promising              |   /ˈprɒmɪsɪŋ/    | adj.  |      有前途的      |
-|              approach              |    /əˈprəʊtʃ/    |  n.   |        方法        |
-|               excel                |     /ɪkˈsel/     |  v.   |     精通，擅长     |
-|  modeling long-range interactions  |                  |       |    建模长程交互    |
-|              maintain              |   /meɪnˈteɪn/    |  v.   |        保持        |
-|  linear computational complexity   |                  |       |   线性计算复杂度   |
-|              leverage              |   /ˈliːvərɪdʒ/   |  v.   |        利用        |
-|       to our best knowledge        |                  |       |     据我们所知     |
-|             automated              |                  |       |      自动化的      |
-|             physicians             |    /fɪˈzɪʃn/     |  n.   |      内科医生      |
-|            pathological            | /ˌpæθəˈlɒdʒɪkl/  | adj.  |      病理学的      |
-|             diagnosis              | /ˌdaɪəɡˈnəʊsɪs/  |  n.   |        诊断        |
-|              thereby               |    /ˌðeəˈbaɪ/    | adv.  |        因此        |
-|         the efficiency of          |                  |       |     ...的效率      |
-|            patient care            |                  |       |      患者护理      |
-|             remarkable             |   /rɪˈmɑːkəbl/   | adj.  | 引人注目的，非凡的 |
-|       as a representative of       |                  |       |    作为...代表     |
-|            scalability             | /ˌskeɪləˈbɪləti/ |  n.   |      可扩展性      |
-|            subsequently            | /ˈsʌbsɪkwəntli/  | adv.  |        随后        |
-|                                    |                  |       |                    |
-|                                    |                  |       |                    |
-|                                    |                  |       |                    |
+|                单词                |       音标        | 词性  |           中文           |
+| :--------------------------------: | :---------------: | :---: | :----------------------: |
+|               realm                |      /relm/       |  n.   |           领域           |
+|          in the realm of           |                   |       |        在…领域里         |
+|            extensively             |   ɪkˈstensɪvli/   | adv.  |                          |
+|              explore               |   /ɪkˈsplɔː(r)/   |  v.   |           探索           |
+|              exhibit               |    /ɪɡˈzɪbɪt/     |  v.   |          表现出          |
+|       exhibit limitations in       |                   |       |  在...方面表现出局限性   |
+|  long-range modeling capabilities  |                   |       |       长程建模能力       |
+|               hamper               |    /ˈhæmpə(r)/    |  v.   |           阻碍           |
+|              whereas               |    /ˌweərˈæz/     | conj. |           然而           |
+|             quadratic              |   /kwɒˈdrætɪk/    | adj.  |          二次的          |
+| quadratic computational complexity |                   |       |  二次计算复杂度$O(n^2)$  |
+|     State Space Models (SSMs)      |                   |       |       空间状态模型       |
+|             exemplify              |   ɪɡˈzemplɪfaɪ/   |  v.   |        是…的典型         |
+|               emerge               |     /ɪˈmɜːdʒ/     |  v.   |           出现           |
+|             promising              |    /ˈprɒmɪsɪŋ/    | adj.  |         有前途的         |
+|              approach              |    /əˈprəʊtʃ/     |  n.   |           方法           |
+|               excel                |     /ɪkˈsel/      |  v.   |        精通，擅长        |
+|  modeling long-range interactions  |                   |       |       建模长程交互       |
+|              maintain              |    /meɪnˈteɪn/    |  v.   |           保持           |
+|  linear computational complexity   |                   |       |      线性计算复杂度      |
+|              leverage              |   /ˈliːvərɪdʒ/    |  v.   |           利用           |
+|              capture               |   /ˈkæptʃə(r)/    |  v.   |           捕获           |
+|             extensive              |   /ɪkˈstensɪv/    | adj.  |      广泛的、大量的      |
+|       contextual information       |                   |       |        上下文信息        |
+|            asymmetrical            |  /ˌeɪsɪˈmetrɪk/   | adj.  |         非对称的         |
+|              conduct               |    /kənˈdʌkt/     |  v.   |        实施、进行        |
+|           comprehensive            | /ˌkɒmprɪˈhensɪv/  | adj.  |     综合性的、全面的     |
+|              indicate              |    /ˈɪndɪkeɪt/    |  v.   |           表明           |
+|       performs competitively       |                   |       |      表现具有竞争力      |
+|       to our best knowledge        |                   |       |        据我们所知        |
+|             automated              |                   |       |         自动化的         |
+|             physicians             |     /fɪˈzɪʃn/     |  n.   |         内科医生         |
+|            pathological            |  /ˌpæθəˈlɒdʒɪkl/  | adj.  |         病理学的         |
+|             diagnosis              |  /ˌdaɪəɡˈnəʊsɪs/  |  n.   |           诊断           |
+|              thereby               |    /ˌðeəˈbaɪ/     | adv.  |           因此           |
+|         the efficiency of          |                   |       |        ...的效率         |
+|            patient care            |                   |       |         患者护理         |
+|            demonstrate             |  /ˈdemənstreɪt/   |  v.   |           展示           |
+|             remarkable             |   /rɪˈmɑːkəbl/    | adj.  |    引人注目的，非凡的    |
+|              various               |    /ˈveəriəs/     | adj.  |        各种各样的        |
+|            particularly            |  /pəˈtɪkjələli/   | adv.  |           尤其           |
+|       as a representative of       |                   |       |       作为...代表        |
+|            scalability             | /ˌskeɪləˈbɪləti/  |  n.   |         可扩展性         |
+|             subsequent             |  /ˈsʌbsɪkwəntli/  | adj.  |          之后的          |
+|              pioneer               |  /ˌpaɪəˈnɪə(r)/   |  n.   |       拓荒者、先锋       |
+|               employ               |     /ɪmˈplɔɪ/     |  v.   |        使用、利用        |
+|               phase                |      /feɪz/       |  n.   |           阶段           |
+|              utilize               |   /ˈjuːtəlaɪz/    |  v.   |        利用、使用        |
+|            significant             |  /sɪɡˈnɪfɪkənt/   | adj.  |          显著的          |
+|            acquisition             |   /ˌækwɪˈzɪʃn/    |  n.   |           获取           |
+|            incorporate             |  /ɪnˈkɔːpəreɪt/   |  v.   |           包含           |
+|              parallel              |    /ˈpærəlel/     |  n.   |          平行的          |
+|           simultaneously           | /ˌsɪmlˈteɪniəsli/ | adv.  |          同时地          |
+|            furthermore             |  /ˌfɜːðəˈmɔː(r)/  | adv.  |        此外、而且        |
+|            nevertheless            |   /ˌnevəðəˈles/   | adv.  |        然而、不过        |
+|              inherent              |    /ɪnˈherənt/    | adj.  |      内在的、固有的      |
+|         be constrained by          |   /kənˈstreɪnd/   | adj.  |        受...约束         |
+|            considerably            |  /kənˈsɪdərəbli/  | adv.  |      非常、相当多地      |
+|               hinder               |    /ˈhɪndə(r)/    |  v.   |        阻碍、妨碍        |
+|             inadequate             |   /ɪnˈædɪkwət/    | adj.  |     不充分的、不足的     |
+|             suboptimal             |  /ˌsʌbˈɒptɪməl/   | adj.  | 次最优的、未达最佳标准的 |
+|              superior              |  /suːˈpɪəriə(r)/  | adj.  |          更强的          |
+|            in terms of             |                   |       |        在...方面         |
+|         dense predictions          |                   |       |         密集预测         |
+|            shortcomings            |   /ˈʃɔːtkʌmɪŋ/    |  n.   |           缺点           |
+|               compel               |     /kəmˈpel/     |  v.   |        强迫、迫使        |
+|          compel sb. to do          |                   |       |       强迫某人去做       |
+|               novel                |      /ˈnɒvl/      |  n.   |          新颖的          |
+|              capable               |    /ˈkeɪpəbl/     | adj.  |   有能力的、可以...的    |
+|              attract               |     /əˈtrækt/     |  v.   |       引起…的兴趣        |
+|            considerable            |  /kənˈsɪdərəbl/   | adj.  |    极大的、相当重要的    |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
+|                                    |                   |       |                          |
 
