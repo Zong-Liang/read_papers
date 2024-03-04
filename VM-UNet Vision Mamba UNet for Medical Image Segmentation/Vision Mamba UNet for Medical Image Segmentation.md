@@ -6,13 +6,41 @@
 
 ## 动机
 
-基于CNN的模型具有长程建模局限，基于transformer的模型性能受到二次计算复杂度的阻碍，提出了纯基于状态空间模型的Vision Mamba UNet (VM-UNet)，同时具有长程建模能力和线性计算复杂度，并在Synapse、ISIC17、ISIC18三个数据集上验证了VM-UNet在医学图像分割任务上的性能。
+基于CNN的模型具有长程建模局限，基于transformer的模型性能受到二次计算复杂度$O(n^2)$的阻碍，提出了纯基于状态空间模型的Vision Mamba UNet (VM-UNet)，同时具有长程建模能力和线性计算复杂度，并在Synapse、ISIC17、ISIC18三个数据集上验证了VM-UNet在医学图像分割任务上的性能。
+
+## Preliminaries
+
+在现代基于 SSM 的模型中，即结构化状态空间模型 (S4) 和 Mamba，都依赖于经典的连续系统，该系统通过中间隐式状态 $h(t)∈R^N$映射到输出$y(t) ∈ R$，表示为$x(t) ∈ R$。上述过程可以表示为线性常微分方程 (ODE)：
+
+$h'(t)=Ah(t)+Bx(t)$
+
+$y(t)=Ch(t)$
+
+其中，$A∈R^{N×N}$ 代表状态矩阵，$B∈R^{N×1}$ 和 $C∈R^{N×1}$ 表示投影参数。
+
+S4 和 Mamba 离散化这个连续系统以使其更适合深度学习场景。具体来说，他们引入了时间尺度参数$\Delta $，并使用固定的离散化规则将 $A$ 和 $B$ 转换为连参数 $\overline{\mathrm{A}}$和 $\overline{\mathrm{B}}$。通常，零阶保持 (ZOH) 被用作离散化规则，可以定义为：
+
+$\begin{aligned}\overline{\mathbf{A}}&=\exp(\boldsymbol{\Delta}\mathbf{A})\end{aligned}$
+
+$\overline{\mathbf{B}}=(\boldsymbol{\Delta}\mathbf{A})^{-1}(\exp(\boldsymbol{\Delta}\mathbf{A})-\mathbf{I})\cdot\boldsymbol{\Delta}\mathbf{B}$
+
+离散化之后，基于 SSM 的模型可以通过两种方式计算：线性递归或全局卷积，分别定义如下：
+
+$h'(t)=\overline{\mathbf{A}}h(t)+\overline{\mathbf{B}}x(t)$
+
+$y(t)=\mathbf{C}h(t)$
+
+$\overline{K}=(\mathrm{C}\overline{\mathrm{B}},\mathrm{C}\overline{\mathrm{A}}\overline{\mathrm{B}},\ldots,\mathrm{C}\overline{\mathrm{A}}^{L-1}\overline{\mathrm{B}})$
+
+$y=x*\overline{\mathrm{K}}$
+
+其中，$\overline{\mathrm{K}}∈R^L$ 代表结构化卷积核，$L$ 表示输入序列 $x$ 的长度。
 
 ## 结构图
 
 ![](https://cdn.jsdelivr.net/gh/ZL85/ImageBed@main//202402261111160.png)
 
-VM-UNet由三个主要部分组成：编码器、解码器和跳跃连接。编码器由VMamba的VSS块组成进行特征提取，以及用于下采样的补丁合并操作。相反，解码器包括VSS块和补丁扩展操作来恢复分割结果的大小。对于跳过连接组件，为了突出原始纯基于 SSM 的模型的分割性能，本文采用了最简单的加法运算形式。
+VM-UNet由三个主要部分组成：编码器、解码器和跳跃连接。编码器由VMamba的VSS块组成进行特征提取，以及用于下采样的补丁合并操作。相反，解码器包括VSS块和补丁扩展操作来恢复分割结果的大小。对于跳跃连接组件，为了突出原始纯基于 SSM 的模型的分割性能，本文采用了最简单的加法运算形式。
 
 ## 方法细节
 
@@ -22,27 +50,29 @@ VM-UNet 包括一个补丁嵌入层、编码器、解码器、最终投影层和
 
 补丁嵌入层将输入图像$x∈R^{H×W ×3}$划分为大小为$4 × 4$的非重叠块，然后将图像的维度映射到$C$，$C$默认为 $96$。这个过程导致嵌入图像$x′∈R^{H/4×W/4×C}$。最后，使用层归一化对$x'$进行归一化，然后将其输入到编码器中进行特征提取。编码器由四个阶段组成，在前三个阶段的末尾应用补丁合并操作，以减少输入特征的高度和宽度，同时增加通道数。在四个阶段使用$[2,2,2,2]$VSS块，每个阶段的通道计数为$[C, 2C, 4C, 8C]$。
 
-同样，解码器分为四个阶段。在最后三个阶段的开始，利用补丁扩展操作减少特征通道的数量，增加高度和宽度。在四个阶段，我们利用$[2, 2, 1]$VSS 块，每个阶段的通道数为$[8C, 4C, 2C, C]$。在解码器之后，使用最终投影层来恢复特征的大小以匹配分割目标。具体来说，通过补丁扩展进行$4$次上采样以恢复特征的高度和宽度，然后使用投影层来恢复通道数。
+同样，解码器分为四个阶段。在最后三个阶段的开始，利用补丁扩展操作减少特征通道的数量，增加高度和宽度。在四个阶段，我们利用$[2,2,2,1]$VSS 块，每个阶段的通道数为$[8C, 4C, 2C, C]$。在解码器之后，使用最终投影层来恢复特征的大小以匹配分割目标。具体来说，通过补丁扩展进行$4$次上采样以恢复特征的高度和宽度，然后使用投影层来恢复通道数。
 
 对于跳跃连接，采用了一个简单的加法操作，因此不会引入任何额外的参数。
 
 ### VSS block
 
-VSS块是VM-UNet的核心模块。在进行层归一化后，输入被分成两个分支。在第一个分支中，输入通过一个线性层和一个激活函数。在第二个分支中，输入通过线性层、深度可分离卷积和激活函数进行处理，然后将其输入到 2D-Selective-Scan (SS2D) 模块中进行进一步的特征提取。随后，使用层归一化对特征进行归一化，然后使用第一个分支的输出执行逐元素生成以合并两条路径。最后，使用线性层对特征进行混合，并将结果与残差连接相结合，形成VSS块的输出。在本文中，SiLU默认用作激活函数。
+VSS 块是 VM-UNet 的核心模块。在进行层归一化后，输入被分成两个分支。在第一个分支中，输入通过一个线性层和一个激活函数。在第二个分支中，输入通过线性层、深度可分离卷积和激活函数进行处理，然后将其输入到 2D-Selective-Scan (SS2D) 模块中进行进一步的特征提取。随后，使用层归一化对特征进行归一化，然后使用第一个分支的输出执行逐元素相乘以合并两条路径。最后，使用线性层对特征进行混合，并将结果与残差连接相结合，形成VSS块的输出。在本文中，SiLU 默认用作激活函数。
+
+> SiLU，即 Sigmoid Linear Unit，也被称为 Swish 激活函数。它是由Google研究员于2017年提出的一种激活函数。SiLU 函数的定义如下：$\mathrm{SiLU}(x)=x\cdot\sigma(x)$，其中 $\sigma(x)$ 是 Sigmoid 函数：$\sigma(x)=\frac1{1+e^{-x}}$，SiLU 函数的图像类似于 ReLU，但具有更平滑的形状。与 ReLU 相比，SiLU 函数在某些情况下可以提供更好的性能，特别是在深度神经网络中。SiLU 激活函数在保留非线性特性的同时，还具有很好的平滑性和渐变消失问题的缓解。
 
 ![image-20240226123037294](https://cdn.jsdelivr.net/gh/ZL85/ImageBed@main//202402261230434.png)
 
-SS2D由三个部分组成：扫描扩展操作、S6块和扫描合并操作。扫描扩展操作沿着四个不同的方向展开输入图像 (左上角到右下角，右下角到左上角，右上角到左下角，左下角到右上角) 成序列。然后，这些序列由 S6 块处理进行特征提取，确保彻底扫描来自各个方向的信息，从而捕获不同的特征。随后，扫描合并操作和合并这四个方向的序列，将输出图像恢复到与输入相同的大小。从 Mamba 导出的 S6 块通过基于输入调整 SSM 的参数，在 S4 之上引入了选择性机制。这使得模型能够区分和保留相关信息，同时过滤掉不相关的信息。S6块的伪代码如算法 1 所示。
+SS2D 由三个部分组成：扫描扩展操作、S6 块和扫描合并操作。扫描扩展操作沿着四个不同的方向展开输入图像 (左上角到右下角，右下角到左上角，右上角到左下角，左下角到右上角) 成序列。然后，这些序列由 S6 块处理进行特征提取，确保彻底扫描来自各个方向的信息，从而捕获不同的特征。随后，扫描合并操作和合并这四个方向的序列，将输出图像恢复到与输入相同的大小。从 Mamba 导出的 S6 块通过基于输入调整 SSM 的参数，在 S4 之上引入了选择性机制。这使得模型能够区分和保留相关信息，同时过滤掉不相关的信息。S6块的伪代码如算法 1 所示。
 
 ![image-20240226123552191](https://cdn.jsdelivr.net/gh/ZL85/ImageBed@main//202402261235300.png)
 
 ### Loss function
 
-用最基本的二元交叉熵和骰子损失(BceDice损失)和交叉熵和骰子损失(CeDice损失)分别作为二元和多类分割任务的损失函数。
+用最基本的二元交叉熵和骰子损失 (BceDice 损失) 和交叉熵和骰子损失 (CeDice 损失) 分别作为二元和多类分割任务的损失函数。
 
 <img src="https://cdn.jsdelivr.net/gh/ZL85/ImageBed@main//202402261238867.png" alt="image-20240226123855764" style="zoom:50%;" />
 
-其中，$N$表示样本总数，$C$表示类别的总数。${y}_i$、$\hat{y}_i$分别表示真实标签和预测标签。${y}_{i,c}$是一个指标，如果样本$i$属于类别$c$，则等于1，否则为0。$\hat{y}_{i,c}$是模型预测样本$i$属于类别$c$的概率。$|X|$、$|Y|$分别代表真值和预测值，$\lambda_1$、$\lambda_2$指的是损失函数的权重，默认情况都设置为1。
+其中，$N$ 表示样本总数，$C$ 表示类别的总数。${y}_i$、$\hat{y}_i$ 分别表示真实标签和预测标签。${y}_{i,c}$ 是一个指标，如果样本$i$属于类别 $c$，则等于1，否则为0。$\hat{y}_{i,c}$ 是模型预测样本$i$属于类别$c$的概率。$|X|$、$|Y|$ 分别代表真值和预测值，$\lambda_1$、$\lambda_2$ 指的是损失函数的权重，默认情况都设置为1。
 
 ## Experiments
 
@@ -62,7 +92,7 @@ Synapse multi-organ segmentation dataset (Synapse): 18 个案例用于训练，1
 
 ![image-20240226125516322](https://cdn.jsdelivr.net/gh/ZL85/ImageBed@main//202402261255433.png)
 
-对于ISIC17和ISIC18数据集，VM-UNet在mIoU、DSC和Acc指标方面优于其他模型。对于 Synapse 数据集，VM-UNet 也取得了具有竞争力的性能。例如，我们的模型在 DSC 和 HD95 指标中超过了第一个纯基于 Transformer 的模型 Swin-UNet。结果表明基于SSM的模型在医学图像分割任务中的优越性。
+对于 ISIC17 和 ISIC18 数据集，VM-UNet 在 mIoU、DSC 和 Acc 指标方面优于其他模型。对于 Synapse 数据集，VM-UNet 也取得了具有竞争力的性能。例如，我们的模型在 DSC 和 HD95 指标中超过了第一个纯基于 Transformer 的模型 Swin-UNet。结果表明基于SSM的模型在医学图像分割任务中的优越性。
 
 <img src="https://cdn.jsdelivr.net/gh/ZL85/ImageBed@main//202402261255878.png" alt="image-20240226125556733" style="zoom:50%;" />
 
@@ -156,33 +186,26 @@ Synapse multi-organ segmentation dataset (Synapse): 18 个案例用于训练，1
 |              capable               |    /ˈkeɪpəbl/     | adj.  |   有能力的、可以...的    |
 |              attract               |     /əˈtrækt/     |  v.   |       引起…的兴趣        |
 |            considerable            |  /kənˈsɪdərəbl/   | adj.  |    极大的、相当重要的    |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
-|                                    |                   |       |                          |
+|             classical              |    /ˈklæsɪkl/     | adj.  |          经典的          |
+|             establish              |    /ɪˈstæblɪʃ/    |  v.   |           建立           |
+|              exhibit               |    /ɪɡˈzɪbɪt/     |  v.   |          表现出          |
+|          with respect to           |                   |       |           关于           |
+|            additionally            |   /əˈdɪʃənəli/    | adv.  |        另外、此外        |
+|            substantial             |   /səbˈstænʃl/    | adj.  |          大量的          |
+|         across many fields         |                   |       |        在许多领域        |
+|           aforementioned           |  /əˈfɔːmenʃənd/   | adj.  |    上述的、前面提及的    |
+|              showcase              |    /ˈʃəʊkeɪs/     |  v.   |        展示、展现        |
+|             potential              |    /pəˈtenʃl/     |  n.   |           潜力           |
+|              composed              |    /kəmˈpəʊzd/    | adj.  |        由……组成的        |
+|           be composed of           |                   |       |        由...组成         |
+|         feature extraction         |                   |       |         特征提取         |
+|             conversely             |   /ˈkɒnvɜːsli/    | adv.  |     相反地、反过来说     |
+|              comprise              |    /kəmˈpraɪz/    |  v.   |           包含           |
+|              restore               |   /rɪˈstɔː(r)/    |  v.   |           恢复           |
+|             highlight              |    /ˈhaɪlaɪt/     |  v.   |        突出、强调        |
+|               adopt                |     /əˈdɒpt/      |  v.   |           采用           |
+|         additive operation         |                   |       |         加法运算         |
+|                i.e.                |     /ˌaɪ ˈiː/     | abbr. |            即            |
+|             elaborate              |    /ɪˈlæbərət/    |  v.   |         详尽阐述         |
+|            elaborate on            |                   |       |         详细说明         |
 
