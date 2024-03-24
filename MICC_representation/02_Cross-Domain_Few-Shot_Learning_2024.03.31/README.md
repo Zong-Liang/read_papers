@@ -1,45 +1,13 @@
-Learning to Learn from Corrupted Data for Few-Shot Learning
-
-Few-shot learning旨在将从标注的基础训练数据中学到的知识推广到识别未见过的新类别，已经引起了相当大的关注。现有的few-shot方法依赖于完全干净的训练数据。然而，在现实世界中，训练数据总是受到污染并伴随着噪声，这是由于数据传输中的干扰和低质量的标注导致的，这严重降低了few-shot模型的性能和泛化能力。为了解决这个问题，我们提出了一个统一的peer-collaboration learning (PCL) 框架，从污染数据中提取有效知识进行few-shot学习。PCL利用两个模块来模拟对等协作过程，共同评估每个样本的重要性。具体来说，每个模块首先通过从全局和局部两个视角编码另一个模块提供的信息来估计不同样本的重要性权重。然后，两个模块都利用获得的重要性权重来引导重新评估每个样本的损失值。通过这种方式，对等体可以相互吸收知识，提高few-shot模型的鲁棒性。实验证明，我们的框架与不同的few-shot方法结合使用可以显著提高原始模型的性能和鲁棒性。
+[StyleAdv: Meta Style Adversarial Training for Cross-Domain Few-Shot Learning](./Meta Style Adversarial Training for Cross-Domain Few-Shot Learning.md)
 
 
 
-Negatives Make a Positive: An Embarrassingly Simple Approach to Semi-Supervised Few-Shot Learning
-
-半监督Few-Shot Learning (SSFSL) 的目标是训练一个分类器，能够利用有限的标记数据和固定数量的未标记数据来适应新的任务。针对这个问题，已经提出了各种复杂的方法来应对挑战。在本文中，我们提出了一种简单但非常有效的方法，从间接学习的角度预测未标记数据的准确负伪标签。我们利用这些伪标签来增强支持集，支持集通常在few-shot任务中受限，例如1-shot分类。在这种标签受限的情况下，我们的方法可以提供非常准确的负伪标签。通过逐个排除负伪标签的迭代过程，我们最终为我们的方法中的每个未标记样本推导出一个正伪标签。负伪标签和正伪标签的整合补充了有限的支持集，从而显著提高了SSFSL的准确性。我们的方法只需几行代码就可以实现，只使用现成的操作，但在四个基准数据集上表现优于最先进的方法。此外，我们的方法在作为现有SSFSL方法的即插即用对应物以及扩展到广义线性模型时展现出良好的适应性和泛化能力。
+[Revisiting Prototypical Network for Cross Domain Few-Shot Learning](./Revisiting Prototypical Network for Cross Domain Few-Shot Learning.md)
 
 
 
-DiffKendall: A Novel Approach for Few-Shot Learning with Differentiable Kendall's Rank Correlation
-
-Few-shot learning旨在将在基础数据集上训练的模型适应到模型之前未见过的新任务中。这经常导致在新类别上特征值的分布相对集中，使得在新任务中确定通道重要性面临挑战。标准的Few-shot学习方法采用几何相似度度量，如余弦相似度和负欧氏距离，来衡量两个特征之间的语义相关性。然而，在Few-shot学习的环境下，具有高几何相似性的特征可能携带不同的语义。在本文中，我们证明特征通道的重要性排序是Few-shot学习的更可靠指标，而不是几何相似度度量。我们观察到，仅在推断过程中用Kendall的排名相关性替换几何相似度度量能够提高在不同领域的多种方法和数据集上Few-shot学习的性能。此外，我们提出了一个精心设计的可微分损失用于元训练，以解决Kendall的排名相关性的非可微性问题。通过用可微分的Kendall的排名相关性替换几何相似度，我们的方法可以与许多现有的Few-shot方法集成，并且准备好与依赖于几何相似度度量的未来最先进的方法集成。大量实验验证了基于排名相关性的方法的有效性，展示了Few-shot学习的显著改进。
+[Discriminative Sample-Guided and Parameter-Efficient Feature Space Adaptation for Cross-Domain Few-Shot Learning](Discriminative Sample-Guided and Parameter-Efficient Feature Space Adaptation for Cross-Domain Few-Shot Learning.md)
 
 
 
-🧐Revisiting Prototypical Network for Cross Domain Few-Shot Learning
-
-Prototypical Network是一种流行的Few-shot解决方案，旨在利用深度神经网络建立一个对新颖的Few-shot分类（FSC）任务具有泛化能力的特征度量。然而，当将其推广到新领域的FSC任务时，其性能会显著下降。在这项研究中，我们重新审视了这个问题，并认为其中的问题在于神经网络中的简单偏见陷阱。具体来说，网络倾向于专注于一些有偏见的快捷特征（例如颜色、形状等），这些特征在预定义域内的元训练任务中足以区分极少数类别，但在跨域泛化时却无法表现出理想的语义特征。为了缓解这个问题，我们提出了一种局部-全局蒸馏原型网络（LDP-net）。与标准的原型网络不同，我们建立了一个两分支网络，分别用于对查询图像和其随机局部裁剪进行分类。然后，我们在这两个分支之间进行知识蒸馏，以强制它们的类别关联一致性。背后的原理是，由于这种全局-局部语义关系预期能够跨越数据域保持一致，因此局部-全局蒸馏有助于利用一些跨域可转移的语义特征来建立特征度量。此外，我们还在同一类别的不同图像之间进一步强化局部-全局语义一致性，以减少生成特征的类内语义变化。此外，我们提出将局部分支更新为训练周期的指数移动平均值（EMA），这使得更好地蒸馏跨周期知识成为可能，并进一步增强了泛化性能。对八个跨领域FSC基准数据集的实验从经验上阐明了我们的观点，并展示了LDP-net的最先进结果。代码可在https://github.com/NWPUZhoufei/LDP-Net中找到。
-
-
-
-Few-Shot Learning with Visual Distribution Calibration and Cross-Modal Distribution Alignment
-
-预训练的视觉-语言模型激发了很多关于Few-shot学习的研究。然而，只有少量的训练图像，存在两个关键问题：(1) 图像中的视觉特征分布很容易受到与类别无关的信息的干扰，(2) 视觉和语言特征分布之间的对齐困难。为了解决干扰问题，我们提出了一个选择性攻击模块，它由可训练的适配器组成，生成图像的空间注意力图，引导对类别无关的图像区域的攻击。通过扰乱这些区域，关键特征被捕获，图像特征的视觉分布被校准。为了更好地对齐描述相同对象类别的视觉和语言特征分布，我们提出了一个跨模态分布对齐模块，在其中为每个类别引入一个视觉-语言原型来对齐分布，并采用地球移动距离(EMD)来优化原型。为了有效计算，我们推导了EMD的上限。此外，我们提出了一种增强策略，增加图像和文本提示的多样性，可以减少对Few-shot训练图像的过拟合。对11个数据集的大量实验证明，我们的方法在Few-shot学习中始终优于先前的方法。实现代码将在 https://gitee.com/mindspore/models/tree/master/research/cv /SADA 上提供。
-
-
-
-FD-Align: Feature Discrimination Alignment for Fine-tuning Pre-Trained Models in Few-Shot Learning
-
-由于数据的有限可用性，现有的从头开始训练的Few-shot学习方法未能实现令人满意的性能。相比之下，像CLIP这样的大规模预训练模型展示了出色的Few-shot和零-shot能力。为了增强预训练模型在下游任务中的性能，通常需要对模型在下游数据上进行微调。然而，对预训练模型进行微调会导致其在分布转移存在时的泛化能力降低，而Few-shot学习中有限数量的样本使得模型极易受到过拟合的影响。因此，现有的Few-shot学习微调方法主要集中在微调模型的分类头部或引入额外结构上。在本文中，我们介绍了一种称为Feature Discrimination Alignment (FD-Align) 的微调方法。我们的方法旨在通过在微调过程中保持虚假特征的一致性来增强模型的泛化能力。大量的实验结果验证了我们的方法对于ID和OOD任务的有效性。一旦进行了微调，模型就可以无缝地与现有方法集成，从而实现性能的提升。我们的代码可以在https://github.com/skingorz/FD-Align 找到。
-
-
-
-🧐StyleAdv: Meta Style Adversarial Training for Cross-Domain Few-Shot Learning
-
-跨域Few-Shot Learning (CD-FSL) 是最近出现的一项任务，旨在解决在不同领域之间进行Few-shot学习的问题。它旨在将在源数据集上学习到的先验知识转移到新颖的目标数据集上。CD-FSL任务尤其受到不同数据集之间巨大的领域差距的挑战。关键在于，这样的领域差距实际上来自于视觉风格的变化，而wave-SAN[10]从经验上显示，跨越源数据的风格分布有助于缓解这个问题。然而，wave-SAN只是简单地交换了两个图像的风格。这样的基本操作使得生成的风格“真实”且“简单”，仍然落入源风格的原始集合。因此，受基本对抗学习的启发，我们提出了一种新颖的、与模型无关的元风格对抗训练（StyleAdv）方法，以及一种新颖的风格对抗攻击方法，用于CD-FSL。特别地，我们的风格攻击方法为模型训练合成了“虚拟”的和“困难”的对抗风格。这是通过用带符号的风格梯度扰动原始风格来实现的。通过持续攻击风格并迫使模型识别这些具有挑战性的对抗风格，我们的模型逐渐对视觉风格具有鲁棒性，从而提高了对新的目标数据集的泛化能力。除了典型的基于CNN的骨干网络外，我们还在大规模预训练视觉Transformer上采用了我们的StyleAdv方法。对八个不同的目标数据集进行的大量实验显示了我们方法的有效性。无论是建立在ResNet还是ViT上，我们在CD-FSL方面都取得了新的最先进结果。代码可在https://github.com/lovelyqian/StyleAdv-CDFSL 找到。
-
-
-
-Multimodality Helps Unimodality: Cross-Modal Few-Shot Learning with Multimodal Models
-
-快速学习新任务的能力，即所谓的Few-shot学习，是智能代理的一个核心方面。经典的Few-shot基准测试利用来自单一模态的Few-shot样本，但这些样本可能不足以表征整个概念类别。相比之下，人类利用跨模态信息有效地学习新概念。在这项工作中，我们展示了通过阅读有关狗的信息和听它们叫声，确实可以构建一个更好的视觉狗分类器。为此，我们利用了最近的多模态基础模型（如CLIP）本质上是跨模态的事实，将不同的模态映射到相同的表示空间。具体而言，我们提出了一种简单的跨模态适应方法，从跨越不同模态的Few-shot示例中学习。通过将类名重新用作额外的单样本训练样本，我们使用一个非常简单的线性分类器实现了SOTA结果，用于视觉-语言适应。此外，我们还展示了我们的方法可以使现有的方法（如前缀调整、适配器和分类器集成）受益。最后，为了探索视觉和语言之外的其他模态，我们构建了第一个（据我们所知）音视频Few-shot基准测试，并利用跨模态训练来提高图像和音频分类的性能。
+Good luck to me!
