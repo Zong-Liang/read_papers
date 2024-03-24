@@ -34,3 +34,50 @@ StyleAdv：用于跨域小样本学习的原风格对抗训练
 
 ## StyleAdv: Meta Style Adversarial Training
 
+**Task Formulation：**情节 $\mathcal{T}=((S,Q),Y)$ 随机采样为每一个元任务的输入，其中 $Y$ 表示情节图像相对于的 $\mathcal{C}^{tr}$ 的全局类别标签。通常，每个元任务被构建为一个 $N$ 类 $K$ 标记问题，也就是说，对于每一集 $T$，将具有 $K$ 个标记图像的 $N$ 个类采样为支持集 $S$，并使用另一个 $M$ 个图像的相同 $N$ 个类构成查询集 $Q$。FSL 或 CD-FSL 模型根据 $S$ 预测 $Q$ 中的图像属于 $N$ 个类别的概率 $P$。形式上，我们有 $|S| = NK$ ，$|Q| = NM$ ， $|P| = NM×N$。
+
+### Overview of Meta Style Adversarial Learning
+
+为了减轻视觉外观变化导致的性能下降，我们通过促进模型对识别各种风格的鲁棒性来解决 CD-FSL。因此，我们将我们的 FSL 模型暴露于源数据集中存在的图像风格之外的一些具有挑战性的虚拟风格。为此，我们提出了一种新颖的 StyleAdv 对抗训练方法。关键的是，我们不是对图像像素添加扰动，而是特别关注对抗性地扰动风格。我们的 StyleAdv 的总体框架如图 1 所示。
+
+![image-20240324153338137](https://cdn.jsdelivr.net/gh/ZL85/ImageBed@main/202403241643887.png)
+
+我们的 StyleAdv 包含一个 CNN/ViT 主干 $E$，一个全局 FC 分类器 $f_{cls}$，和一个具有可学习参数$\theta_{E},\theta_{cls},\theta_{fsl}$ FSL 分类器 $f_{fsl}$。此外，我们还包括了我们的核心风格攻击方法、一种新颖的风格提取模块和 AdaIN。
+
+总体而言，我们通过解决极小极大游戏来学习 StyleAdv。具体来说，极小极大游戏应该在每个元训练步骤中涉及两个迭代优化循环。特别是，
+
+**内循环 (Inner loop)：**通过攻击原始源f风格来合成新的对抗性风格；生成的风格将增加当前网络的损失。
+
+**外循环 (Outer loop)：**通过用原始风格和对抗性风格对源图像进行分类来优化整个网络；此过程将减少损失。
+
+### Style Extraction from CNNs and ViTs
+
+**Adaptive Instance Normalization (AdaIN)：**我们回顾了为 CNN 在风格迁移中提出的普通 AdaIN。特别是，AdaIN 表明实例级均值和标准差 (缩写为均值和标准差) 传达了输入图像的风格信息。将 $mean$ 和 $std$ 分别表示为 $\mu$ 和 $\sigma$，AdaIN (表示为 $A$) 表明 $F$ 的风格能通过将原始风格 $(\mu,\sigma)$ 替换为目标风格 $(\mu_{tgt},\sigma_{tgt})$ 迁移到 $F_{tgt}$ 的风格：
+
+$\mathcal{A}(F,\mu_{tgt},\sigma_{tgt})=\sigma_{tgt}\frac{F-\mu(F)}{\sigma(F)}+\mu_{tgt}$
+
+**Style Extraction for CNN Features：**如图 1 (b) 的上半部分所示，令 $F\in\mathcal{R}^{B\times C\times H\times W}$ 表示输入特征批次，其中 $B$，$C$，$H$，和 $W$ 分别表示特征 $F$ 的批量大小、通道、高度和宽度。与 AdaIN 一样，$F$ 的均值 $μ$ 和标准差 $\sigma$ 定义为：
+
+$\mu(\mathrm{F})_{\mathrm{b,c}}=\frac{1}{HW}\sum_{h=1}^{H}\sum_{w=1}^{W}F_{b,c,h,w}$
+
+$\sigma(\mathrm F)_{\mathrm b,\mathrm c}=\sqrt{\dfrac{1}{HW}\sum_{h=1}^{H}\sum_{w=1}^{W}(F_{b,c,h,w}-\mu_{\mathrm b,\mathrm c}(F))^2+\epsilon}$
+
+其中 $\mu,\sigma\in\mathcal{R}^{B\times C}$。
+
+**Meta Information Extraction for ViT Features：**我们探索了将 ViT 特征的元信息提取为 CNN 的方式。直观地说，这种元信息可以看作是 ViT 的唯一“风格”。如图 1 (b) 所示，我们以一个输入批次的图像数据分割为 $P\times P$ 大小的块为例。ViT 编码器将一个批次的块编码为类别 token 和 一个块 token。为了与 AdaIN 比较，我们将 $F_0$ 改变为 $F\in{\mathcal R}^{B\times C\times P\times P}$ 形状。此时，我们可以计算块 tokens $F$ 的元信息，如式5和式6所示。本质上，请注意 transformer 将位置嵌入集成到块表示中，因此可以认为空间关系仍然存在于块 tokens 中。这支持了我们将块 tokens $F_0$ 转换为空间特征图 $F$。在某种程度上，这可以通过通过大小为 $P\times P$ 的内核对输入数据应用卷积来实现（如图 1 (b) 中的虚线箭头所示）。
+
+### Inner Loop: Style Adversarial Attack Method
+
+我们提出了一种新的风格对抗性攻击方法——快速风格梯度符号方法（Style-FGSM）来完成内循环。如图 1 所示，给定一个输入源集 $(\mathcal{T},Y)$，我们首先将其送到主干 $E$ 和 FC 分类器 $f_{cls}$ 产生全局分类损失 $L_{cls}$（如图 ① 路径所示）。在这个过程中，关键步骤是使风格的梯度可用。为此，设 $F_{\mathcal{T}}$ 表示 $\mathcal{T}$ 的特征，我们得到 $F_{\mathcal{T}}$ 的风格 $(\mu,\sigma)$。之后，我们将原始集的特征转变为 $\mathcal{A}(F_{\mathcal{T}},\mu,\sigma)$。转换后的特征用于实际上地前向传播。通过这种方式，我们将 $\mu$ 和 $\sigma$ 包含在了前向计算链中，因此，我们可以访问它们的梯度。
+
+利用 ② 路径的梯度，我们和 FGSM 做的一样，分别为 $\mu$ 和 $\sigma$ 通过添加一个小的有符号梯度比率来攻击 $\mu$ 和 $\sigma$ 。
+
+$\mu^{adv}=\mu+\epsilon\cdot\operatorname{sign}(\nabla_{\mu}J(\theta_{E},\theta_{f_{cls}},\mathcal{A}(F_{\mathcal{T}},\mu,\sigma),Y))$
+
+$\sigma^{adv}=\sigma+\epsilon\cdot\mathrm{sign}(\nabla_{\sigma}J(\theta_{E},\theta_{f_{cls}},\mathcal{A}(F_{\mathcal{T}},\mu,\sigma),Y))$
+
+其中 $J()$ 是分类预测和真值之间的交叉熵损失，即 $\mathcal{L}_{cls}$。受 PGD 随机开始的启发，我们还将随机噪声 $k_{RT}\cdot\mathcal{N}(0,I)$ 在攻击前添加到 $(\mu,\sigma)$ 。$\mathcal{N}(0,I)$ 指高斯噪声，$k_{RT}$ 是一个超参数。我们的 Style-FGSM 使我们能够生成“虚拟”和“硬”风格。
+
+**Progressive Style Synthesizing Strategy：**为了防止高级对抗特征偏离，我们建议在渐进式策略中应用我们的 Style-FGSM 。具体来说，嵌入模块 $E$ 有三个模块 $E_1$，$E_2$，$E_3$，对应特征$F_1$，$F_2$，$F_3$。对于第一个块，我们使用 $(\mu_{1},\sigma_{1})$ 来表示$F_1$ 的原始风格。对抗风格 $(\mu_1^{adv},\sigma_1^{adv})$ 直接通过公式 7 和公式 8 得到。对于后续块，当前块 $i$ 的攻击信号是从块 $1$ 累计到块 $i-1$ 的。以第二个块为例，块特征 $F_2$ 不是简单地由 $E_{2}(F_{1})$ 提取。相反，我们有 $F_{2}^{'}=E_{2}(F_{1}^{adv})$，其中 $F_{1}^{adv}=\mathcal{A}(F_{1},\mu_{1}^{adv},\sigma_{1}^{adv})$。在 $F_{2}^{'}$ 上的攻击产生对抗风格 $(\mu_{2}^{adv},\sigma_{2}^{adv})$。因此，我们为最后一个块生成了$(\mu_{3}^{adv},\sigma_{3}^{adv})$。渐进式攻击策略的说明附在附录中。
+
+**Changing Style Perturbation Ratios：**与普通 FGSM 或 PGD 不同，我们的风格攻击算法有望合成具有多样性的新风格。因此，我们没有使用固定的攻击比率 $\epsilon$ ，而是从候选列表 $\epsilon_{list}$ 中随机抽取 $\epsilon$ 作为当前攻击比率。尽管 $\epsilon$ 的随机性，但我们仍然以更具挑战性的方向合成风格， $\epsilon$ 仅影响程度。
